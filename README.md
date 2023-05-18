@@ -1,2 +1,6 @@
-# terraform-twingate
-This repository is used to build the Twingate environment. It is primarily targeted at AWS environments.
+<!-- omit in toc -->
+# Terraform for Twingate 
+
+## Overview
+
+Used to manage Twingate with Terraform.
