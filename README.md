@@ -4,3 +4,7 @@
 ## Overview
 
 Used to manage Twingate with Terraform.
+
+## Requirements
+
+- Terraform
