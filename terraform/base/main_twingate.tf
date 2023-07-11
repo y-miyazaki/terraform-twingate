@@ -1,21 +1,48 @@
 #--------------------------------------------------------------
+# Local
+#--------------------------------------------------------------
+locals {
+  #     resources = flatten([
+  #     for k, v in var.twingate.network : [
+  #       for k2, v2 in v.resource : [
+  #         k2 => v2
+  #       ]
+  #     ]
+  #   ])
+  tmp = flatten([for k, v in var.twingate.network : [for k2, v2 in v.resource : {
+    network   = k
+    address   = v2.address
+    alias     = v2.alias
+    protocols = v2.protocols
+    access    = v2.access
+    }
+    ]
+  ])
+  resources = { for v in local.tmp : v.address => v }
+
+}
+#--------------------------------------------------------------
 # A Remote Network represents a single private network in Twingate that can have one or more Connectors and Resources assigned to it. You must create a Remote Network before creating Resources and Connectors that belong to it. For more information, see Twingate's documentation.
 #--------------------------------------------------------------
 resource "twingate_remote_network" "this" {
-  name = var.twingate.remote_network.name
+  for_each = var.twingate.network
+  name     = each.value.remote_network.name
+  location = each.value.remote_network.location
 }
 #--------------------------------------------------------------
 # Connectors provide connectivity to Remote Networks. This resource type will create the Connector in the Twingate Admin Console, but in order to successfully deploy it, you must also generate Connector tokens that authenticate the Connector with Twingate. For more information, see Twingate's documentation.
 #--------------------------------------------------------------
 resource "twingate_connector" "this" {
-  remote_network_id = twingate_remote_network.this.id
-  name              = var.twingate.connector.name
+  for_each          = var.twingate.network
+  remote_network_id = twingate_remote_network.this[each.key].id
+  name              = each.value.connector.name
 }
 #--------------------------------------------------------------
 # This resource type will generate tokens for a Connector, which are needed to successfully provision one on your network. The Connector itself has its own resource type and must be created before you can provision tokens.
 #--------------------------------------------------------------
 resource "twingate_connector_tokens" "this" {
-  connector_id = twingate_connector.this.id
+  for_each     = var.twingate.network
+  connector_id = twingate_connector.this[each.key].id
 }
 # resource "twingate_group" "this" {
 #   name = var.twingate.group.name
@@ -35,14 +62,14 @@ resource "twingate_user" "this" {
 # Resources in Twingate represent servers on the private network that clients can connect to. Resources can be defined by IP, CIDR range, FQDN, or DNS zone. For more information, see the Twingate documentation.
 #--------------------------------------------------------------
 resource "twingate_resource" "this" {
-  for_each          = var.twingate.resource
-  name              = each.value.name
+  for_each          = local.resources
+  name              = each.value.address
   address           = each.value.address
-  alias = each.value.alias
-  remote_network_id = twingate_remote_network.this.id
+  alias             = each.value.alias
+  remote_network_id = twingate_remote_network.this[each.value.network].id
 
   dynamic "protocols" {
-    for_each = lookup(var.twingate.resource, "protocols", [])
+    for_each = length(lookup(each.value, "protocols", [])) > 0 ? [lookup(each.value, "protocols", {})] : []
     content {
       allow_icmp = lookup(protocols.value, "allow_icmp", true)
       dynamic "tcp" {
@@ -59,6 +86,14 @@ resource "twingate_resource" "this" {
           ports  = lookup(udp.value, "ports", null)
         }
       }
+    }
+  }
+
+  dynamic "access" {
+    for_each = length(lookup(each.value, "access", [])) > 0 ? [lookup(each.value, "access", {})] : []
+    content {
+      group_ids           = lookup(access.value, "group_ids")
+      service_account_ids = lookup(access.value, "service_account_ids")
     }
   }
 }

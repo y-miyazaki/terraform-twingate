@@ -7,14 +7,6 @@
 # Twingate
 #--------------------------------------------------------------
 twingate = {
-  # TODO: Register the remote network you wish to manage in Twingate.
-  remote_network = {
-    name = "test"
-  }
-  # TODO: Register the connnector you wish to manage in Twingate.
-  connector = {
-    name = "aws"
-  }
   # TODO: Register the groups you wish to manage in Twingate.
   group = {
     name = "testgroup"
@@ -28,19 +20,35 @@ twingate = {
       role       = "MEMBER"
     }
   }
-  # TODO: Register the resources (DNS or CIDR) you need to access with Twingate.
-  resource = {
-    test = {
-      name    = "test"
-      address = "www.test.com"
-      alias = null
-      protocols = {
-        allow_icmp = true
-        tcp = {
-          policy = "ALLOW_ALL"
-        }
-        udp = {
-          policy = "ALLOW_ALL"
+  network = {
+    dev = {
+      # TODO: Register the remote network you wish to manage in Twingate.
+      remote_network = {
+        name     = "dev"
+        location = "AWS"
+      }
+      # TODO: Register the connnector you wish to manage in Twingate.
+      connector = {
+        name = "aws"
+      }
+      # TODO: Register the resources (DNS or CIDR) you need to access with Twingate.
+      resource = {
+        test-example-com = {
+          address = "test.example.com"
+          alias   = null
+          protocols = {
+            allow_icmp = true
+            tcp = {
+              policy = "ALLOW_ALL"
+            }
+            udp = {
+              policy = "ALLOW_ALL"
+            }
+          }
+          access = {
+            group_ids           = null
+            service_account_ids = null
+          }
         }
       }
     }
